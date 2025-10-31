@@ -305,7 +305,7 @@ func main() {
             ws = new WebSocket(wsUrl);
             
             ws.onopen = function() {
-                console.log('WebSocket connected');
+                console.log('WebSocket connected to:', wsUrl);
                 connected = true;
                 updateConnectionStatus(true);
             };
@@ -319,12 +319,41 @@ func main() {
 
             ws.onerror = function(error) {
                 console.error('WebSocket error:', error);
+                console.error('WebSocket URL was:', wsUrl);
                 updateConnectionStatus(false);
             };
 
             ws.onmessage = function(event) {
-                const message = JSON.parse(event.data);
-                handleMessage(message);
+                try {
+                    console.log('Raw message received (length: ' + event.data.length + '):', event.data);
+                    
+                    // Check if the message contains multiple JSON objects
+                    if (event.data.includes('}{')) {
+                        console.warn('Multiple JSON objects detected in single message');
+                        // Split and process each JSON object
+                        const messages = event.data.split('}{');
+                        for (let i = 0; i < messages.length; i++) {
+                            let jsonStr = messages[i];
+                            if (i > 0) jsonStr = '{' + jsonStr;
+                            if (i < messages.length - 1) jsonStr = jsonStr + '}';
+                            
+                            try {
+                                const message = JSON.parse(jsonStr);
+                                handleMessage(message);
+                            } catch (splitError) {
+                                console.error('Failed to parse split JSON:', splitError, 'Data:', jsonStr);
+                            }
+                        }
+                    } else {
+                        const message = JSON.parse(event.data);
+                        handleMessage(message);
+                    }
+                } catch (error) {
+                    console.error('Failed to parse JSON message:', error);
+                    console.error('Raw data was:', event.data);
+                    console.error('Data at position 483:', event.data.charAt(483));
+                    console.error('Data around position 483:', event.data.substring(480, 490));
+                }
             };
         }
 
@@ -340,12 +369,15 @@ func main() {
         }
 
         function handleMessage(message) {
-            console.log('Received:', message);
+            console.log('Received message:', message);
             
             switch (message.type) {
                 case 'game_joined':
+                    console.log('Processing game_joined message');
                     game = message.data.game;
                     player = message.data.player;
+                    console.log('Game data:', game);
+                    console.log('Player data:', player);
                     showGame();
                     updateGameDisplay();
                     if (message.data.isWaiting) {
@@ -390,19 +422,27 @@ func main() {
             }
 
             if (!connected) {
-                showLoginError('Not connected to server');
+                showLoginError('Not connected to server. Please wait and try again.');
                 return;
             }
 
+            console.log('Sending join_game message:', { username, gameId });
+            
             const data = { username: username };
             if (gameId) {
                 data.gameId = gameId;
             }
 
-            ws.send(JSON.stringify({
-                type: 'join_game',
-                data: data
-            }));
+            try {
+                ws.send(JSON.stringify({
+                    type: 'join_game',
+                    data: data
+                }));
+                console.log('Join game message sent successfully');
+            } catch (error) {
+                console.error('Error sending join game message:', error);
+                showLoginError('Failed to send join request. Please try again.');
+            }
         }
 
         function makeMove(column) {
@@ -440,28 +480,43 @@ func main() {
         function updateGameDisplay() {
             if (!game) return;
 
-            document.getElementById('gameId').textContent = 'Game ID: ' + game.id;
-            document.getElementById('player1Name').textContent = game.player1.username + (player && player.username === game.player1.username ? ' (You)' : '');
+            const gameIdEl = document.getElementById('gameId');
+            const player1NameEl = document.getElementById('player1Name');
+            const player2NameEl = document.getElementById('player2Name');
             
-            if (game.player2) {
-                document.getElementById('player2Name').textContent = game.player2.username + (player && player.username === game.player2.username ? ' (You)' : '') + (game.player2.isBot ? ' (Bot)' : '');
-            } else {
-                document.getElementById('player2Name').textContent = 'Waiting...';
+            if (gameIdEl) {
+                gameIdEl.textContent = 'Game ID: ' + game.id;
+            }
+            
+            if (player1NameEl) {
+                player1NameEl.textContent = game.player1.username + (player && player.username === game.player1.username ? ' (You)' : '');
+            }
+            
+            if (player2NameEl) {
+                if (game.player2) {
+                    player2NameEl.textContent = game.player2.username + (player && player.username === game.player2.username ? ' (You)' : '') + (game.player2.isBot ? ' (Bot)' : '');
+                } else {
+                    player2NameEl.textContent = 'Waiting...';
+                }
             }
 
             const cells = document.querySelectorAll('.cell');
-            for (let row = 0; row < 6; row++) {
-                for (let col = 0; col < 7; col++) {
-                    const cell = cells[row * 7 + col];
-                    const value = game.board[row][col];
-                    
-                    cell.className = 'cell';
-                    if (value === 0) {
-                        cell.className += ' empty';
-                    } else if (value === 1) {
-                        cell.className += ' player1';
-                    } else if (value === 2) {
-                        cell.className += ' player2';
+            if (cells.length > 0) {
+                for (let row = 0; row < 6; row++) {
+                    for (let col = 0; col < 7; col++) {
+                        const cell = cells[row * 7 + col];
+                        if (cell) {
+                            const value = game.board[row][col];
+                            
+                            cell.className = 'cell';
+                            if (value === 0) {
+                                cell.className += ' empty';
+                            } else if (value === 1) {
+                                cell.className += ' player1';
+                            } else if (value === 2) {
+                                cell.className += ' player2';
+                            }
+                        }
                     }
                 }
             }
