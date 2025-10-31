@@ -324,23 +324,23 @@ func main() {
             };
 
             ws.onmessage = function(event) {
+                console.log('=== WebSocket Message Received ===');
+                console.log('Length:', event.data.length);
+                console.log('Raw data:', event.data);
+                console.log('First 100 chars:', event.data.substring(0, 100));
+                console.log('Last 100 chars:', event.data.substring(Math.max(0, event.data.length - 100)));
+                
                 try {
-                    console.log('Raw message received (length: ' + event.data.length + '):', event.data);
+                    // Clean the data - remove any potential whitespace or control characters
+                    let cleanData = event.data.trim();
                     
-                    // Check if the message contains multiple JSON objects
-                    if (event.data.includes('}{')) {
-                        console.warn('Multiple JSON objects detected in single message');
-                        // Split and process each JSON object
-                        const messages = event.data.split('}{');
-                        for (let i = 0; i < messages.length; i++) {
-                            let jsonStr = messages[i];
-                            if (i > 0) jsonStr = '{' + jsonStr;
-                            if (i < messages.length - 1) jsonStr = jsonStr + '}';
-                            
-                            try {
-                                const message = JSON.parse(jsonStr);
-                                handleMessage(message);
-                            } catch (splitError) {
+                    // Check for multiple JSON objects concatenated
+                    if (cleanData.includes('}{')) {
+                        console.warn('Multiple JSON objects detected, splitting...');
+                        const parts = cleanData.split('}{');
+                        for (let i = 0; i < parts.length; i++) {
+                            let jsonStr = parts[i];
+                            if (i h (splitError) {
                                 console.error('Failed to parse split JSON:', splitError, 'Data:', jsonStr);
                             }
                         }
