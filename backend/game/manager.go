@@ -339,6 +339,11 @@ func (m *Manager) GetGame(gameID string) (*Game, bool) {
 func (m *Manager) saveGameResult(game *Game) {
 	duration := time.Since(game.CreatedAt).Seconds()
 	
+	log.Printf("Saving game result - Winner: %d, Player1: %s, Player2: %s, Duration: %.2f", 
+		game.Winner, game.Player1.Username, 
+		func() string { if game.Player2 != nil { return game.Player2.Username } else { return "nil" } }(), 
+		duration)
+	
 	// Update in-memory leaderboard
 	m.updateLeaderboard(game, duration)
 	
@@ -368,6 +373,8 @@ func (m *Manager) saveGameResult(game *Game) {
 }
 
 func (m *Manager) updateLeaderboard(game *Game, duration float64) {
+	log.Printf("Updating leaderboard for %s - Winner: %d", game.Player1.Username, game.Winner)
+	
 	// Update player 1 stats (always human)
 	if stats, exists := m.leaderboard[game.Player1.Username]; exists {
 		stats.GamesPlayed++
