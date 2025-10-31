@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
@@ -550,35 +549,9 @@ func main() {
     </script>
 </body>
 </html>`
-<html>
-<head>
-    <title>4-in-a-Row Game</title>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-        .container { max-width: 600px; margin: 0 auto; }
-        .status { background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; margin: 20px 0; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>4-in-a-Row Game Server</h1>
-        <div class="status">
-            <h2>Server is Running!</h2>
-            <p>WebSocket endpoint: <code>ws://localhost:8080/ws</code></p>
-            <p>API endpoints available:</p>
-            <ul style="text-align: left;">
-                <li><a href="/api/stats" style="color: #fff;">GET /api/stats</a></li>
-                <li><a href="/api/leaderboard" style="color: #fff;">GET /api/leaderboard</a></li>
-                <li><a href="/health" style="color: #fff;">GET /health</a></li>
-            </ul>
-        </div>
-    </div>
-</body>
-</html>`
-				w.Header().Set("Content-Type", "text/html")
-				w.Write([]byte(html))
-			}).Methods("GET")
-		}
+			w.Header().Set("Content-Type", "text/html")
+			w.Write([]byte(html))
+		}).Methods("GET")
 	}
 
 	port := os.Getenv("PORT")
