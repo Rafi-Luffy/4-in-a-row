@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: connect4-backend
+    env: go
+    buildCommand: cd backend && go build -o main
+    startCommand: ./backend/main
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: GO_VERSION
+        value: 1.19
+    healthCheckPath: /health
